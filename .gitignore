@@ -16,6 +16,12 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# Local agent state and secrets
+.pi/
+.env
+.env.*
+!.env.example
+
 # OS / editor
 .DS_Store
 *.swp
