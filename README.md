@@ -1,145 +1,190 @@
-# retnet — byte-level RetNet / retention experiments (scratch archive)
+<p align="center">
+  <img src="assets/logo.svg" alt="retnet logo" width="112" height="112">
+</p>
 
-A personal research scratchpad: small byte-level language models whose sequence
-mixer is a **RetNet-style retention layer** — a softmax-free causal
-"attention" computed as a learned exponential decay applied to a running sum of
-`K ⊙ V` — built on top of the author's compositional layer library `nn.py` and
-hyper-parameter-searched with Ray Tune.
+<h1 align="center">retnet</h1>
 
-It exists because the author wanted to know whether a cheap, parallelisable,
-recurrent-at-inference mixer (decayed cumulative sum) could replace attention /
-dilated convolution inside a tiny byte-level LM, and which stacking of
-retention + causal convolution layers wins. The problem being attacked is the
-usual one: match the quality of attention on long-range byte dependencies at a
-fraction of the cost, and find the layer topology that does it. No result was
-ever written up.
+<p align="center"><strong>Byte-level RetNet experiments, from first principles.</strong></p>
 
-## How to run
+<p align="center">
+  A from-scratch, softmax-free retention layer for byte-level language models —
+  small enough to read, complete enough to train.
+</p>
 
-**There is no single entrypoint.** This is `.ipynb`-only research: 29 notebooks,
-no package, no CLI, no tests, no requirements file.
+<p align="center"><strong>English</strong> | <a href="README.zh-CN.md">简体中文</a></p>
 
-1. Install (the core RetNet line only needs the first line):
-   ```bash
-   pip install torch numpy matplotlib pandas tqdm "ray[tune]" hyperopt
-   ```
-   Peripheral notebooks additionally use `transformers` (Untitled4),
-   `numba` + `llvmlite` (numba.ipynb), `greenlet` + `lark` (Untitled9,
-   play.ipynb), `smac` + `ConfigSpace` (Untitled2), `multiprocess` and
-   `scipy` (Untitled4, Untitled-Copy1).
-2. Open **`ray3.ipynb`** — the single most complete notebook (retention block +
-   model + self-contained `train()` + three Ray Tune ASHA search stages).
-   `ray1.ipynb` / `ray2.ipynb` are the same lineage with more search stages;
-   `ray3cnn-Copy5.ipynb` and `Untitled9.ipynb` are the largest (messy)
-   retention + CNN hybrid workbenches.
-3. Run top-to-bottom in a CUDA environment. The training loop expects bf16
-   autocast and runs 10 000–20 000 steps; notebooks were aimed at 0.5–0.33 GPU
-   per Tune trial.
-4. **Data is not included.** Every model reads a raw byte corpus through
-   `nn.Dat(path, ...)`, which memory-maps the file and writes a `path.map`
-   vocabulary sidecar (byte vocabulary < 127). Provide your own byte file and
-   point the placeholder path at it:
+---
 
-   ```python
-   dat = Dat("py.txt", 32, 256)   # (file, epochs, batch, context-length)
-   ```
+## Why this exists
 
-   The original author's absolute corpus paths (`/home/<user>/...`) were
-   replaced with the relative placeholders `py.txt` and `ray_results/` so the
-   notebooks carry no personal filesystem paths.
+This is a personal research archive, not a product. It asks a narrow question:
+inside a tiny byte-level language model, can a cheap, parallelisable mixer — a
+learned exponential decay applied to a running sum of `K ⊙ V` — replace
+attention or dilated convolution? And if it can, which stacking of retention and
+causal-convolution layers works best?
 
-Nothing is checkpointed. The only disk output some notebooks produce is an
-optional `log.txt`; everything else goes to matplotlib windows — so a completed
-run leaves no artefact behind.
+The experiments were run in notebooks with Ray Tune, then stopped. There is no
+paper, no benchmark against a baseline, and no saved result set. What remains is
+the complete working trail: the layer library, the model definitions, the search
+configurations, and the notebooks that produced them.
 
-## What is actually here vs not
+## Quick start
 
-**Here**
+There is no package, CLI, test suite, or requirements file. The fastest entry
+point is the reference notebook.
 
-- `nn.py` (420 lines) — the compositional layer library: `Seq/Add/Mul/Dot/Res`,
-  `Ret` (retention), `Decay` (learned causal decayed cumsum), `Dat` (byte
-  memmap loader), parameter-count sizing helpers.
-- `nnn.py` (142 lines) — an earlier, unused fork of the same ideas; no notebook
-  imports it.
-- 29 notebooks, ≈7 057 non-empty code lines (7 713 raw), spanning the retention
-  line and a lot of unrelated dead ends (greenlet/fiber scheduling, numba +
-  llvmlite codegen, fp8, asyncio experiments, numpy sort/unique utilities,
-  model-repr de-duplication).
-- `code.sh` — a personal helper that `sudo find`s the whole filesystem to build
-  lowercase token corpora for a language model.
+```bash
+git clone https://github.com/ZisIsNotZis/retnet.git
+cd retnet
+pip install torch numpy matplotlib pandas tqdm "ray[tune]" hyperopt
+jupyter lab ray3.ipynb
+```
 
-**Not here**
+`ray3.ipynb` contains the clearest complete path: retention block → byte-level
+model → a self-contained `train()` loop (Adam + OneCycleLR, bf16 autocast) →
+three Ray Tune ASHA searches. Open it on a CUDA machine and run top to bottom.
 
-- **No data / corpus.** The `py.txt` byte files the models train on are not in
-  the archive.
-- **No checkpoints** or model weights.
-- **No results.** There are *no saved cell outputs anywhere* in the 29
-  notebooks; the only figure is one markdown image attachment in
-  `Untitled4.ipynb` (a bar chart of a weight histogram). No loss curves, no
-  best-config tables, no write-up.
-- **No tests, no CI, no requirements file, no license.**
+**Data is not included.** Every model reads a raw byte corpus through
+`nn.Dat`, which memory-maps the file and writes a `path.map` vocabulary sidecar:
 
-**Honest assessment.** This is a pile of near-duplicate `Untitled*` and
-`Untitled-CopyN` scratch notebooks, not a coherent project. The coherent thread
-is real but short: a handful of notebooks (`ray1`, `ray2`, `ray3`,
-`ray3cnn-Copy5`, `Untitled9`, `Untitled10`) revisit the same
-`Embedding → [Ret + causal-comp conv] × N → Linear` idea with slightly different
-building blocks, while the rest are unrelated experiments parked in the same
-directory. Cells often reference utilities defined in an earlier notebook or
-nowhere (e.g. `ray3.ipynb` calls an undefined `size_select`), so a notebook is
-not guaranteed to run standalone even with data.
+```python
+from nn import Dat
 
-## Notebook map
+dat = Dat("py.txt", 32, 256)  # (file, epochs, batch, context length)
+```
 
-| Notebook | Role |
+Point the placeholder at your own byte file. A simple place to start is a
+lowercased source-code corpus; `code.sh` is the author's helper for building
+one. The generated `.map`, `ray_results/`, and `log.txt` are git-ignored.
+
+### The core idea
+
+The retention block is assembled from ordinary layers. This is the whole
+sketch, with the surrounding model left out:
+
+```python
+from nn import *
+
+model = Seq(
+    Embedding(68, 64),
+    Ret(64),          # learned-decay retention
+    Linear(64, 68),   # next-byte logits
+)
+```
+
+## What it can do now
+
+- **Build a retention mixer from scratch** — `nn.Decay` implements the
+  exponential-decay cumulative sum in linear and log space; `nn.Ret` wires it
+  into a multi-head key/value block with causal projections.
+- **Compose models without a framework** — `Seq`, `Add`, `Mul`, `Dot`, `Res`,
+  and `Stack` make the notebooks read like the architecture diagrams.
+- **Train byte-level LMs** — memory-mapped byte data, bf16 autocast, Adam,
+  OneCycleLR, and loss/accuracy reporting.
+- **Search architectures cheaply** — Ray Tune ASHA experiments over widths,
+  heads, kernel sizes, and decay ranges, with roughly 0.33–0.5 GPU per trial.
+- **Explore retention + convolution hybrids** — plain retention stacks, causal
+  convolution branches, and strided/dilated U-Net-style down/up-sampling.
+- **Read the research trail** — 28 notebooks, 0 saved outputs, and a 420-line
+  library that is the direct ancestor of [`cznn`](https://github.com/ZisIsNotZis/cznn).
+
+**What is not here:** the `py.txt` corpora, checkpoints, loss curves, best
+configs, tests, CI, or a requirements file. The notebooks are a record of what
+was tried, not a reproducible benchmark.
+
+## Architecture
+
+```text
+byte corpus
+   │
+   ├─ Dat                 memory-map + byte vocabulary sidecar
+   │
+   └─ Embedding(68, d)
+        │
+        └─ N × [ retention (Decay + causal projections) + causal convolution ]
+             │
+             └─ Linear(d, vocab) → next-byte logits
+```
+
+| Path | What it is |
 | --- | --- |
-| **`ray3.ipynb`** | **Most complete.** `Ret` (retention via `Decay` + causal `SepConvLeft`) → `Model` → self-contained `train()` (byte `Dat`, Adam + OneCycleLR, loss/accuracy reporting) + 3 Ray Tune ASHA searches. |
-| `ray1.ipynb`, `ray2.ipynb` | Same lineage: `Ret`/`Cov` blocks combined into `Blk`/`Blks`, parameter-count sizing (`get_blks`), `train_blks`, 5 Tune stages with result tables and plots. |
-| `ray3cnn-Copy5.ipynb` | Largest retention workbench (933 code lines, 78 `Ret(...)` uses): retention + strided/dilated conv U-Net-style stack (`Cov`/`Covd`/`Covu`), plain `torch.compile(torch.jit.trace(...))` training loop; heavily duplicated, expects a `dat` from elsewhere. |
-| `Untitled9.ipynb` | Same model zoo as above plus greenlet/fiber scheduling experiments. |
-| `Untitled10.ipynb` | The same `Ret` + conv hybrid at 1024 context. |
-| `Untitled-Copy3.ipynb`, `Untitled-Copy5.ipynb`, `Untitled-Copy6.ipynb` | Earlier `retcore`/`decore`/`covcore` designs, a `Model` factory, and a Ray Tune search over `decay` variants. |
-| `Untitled-Copy1.ipynb` | Separate thread: byte-level **CNN** LM + random architecture search (`randtrain`, `ModelC`), plus a sampler that prints generated text. |
-| `ray3cnn.ipynb`, `ray3cnn-Copy1..4.ipynb` | CNN-only byte LMs (`SepConvLeft`/`Fullin`), model-string compression, and logging variants — conv research adjacent to the retention line. |
-| `Untitled.ipynb`, `Untitled4.ipynb`, `Untitled5/6/7/8.ipynb`, `numba.ipynb`, `play.ipynb`, `fp8.ipynb`, `Untitled1/2/3/10/11` | Dead ends: numpy utility kernels, asyncio/generator experiments, ChatGLM-3-6B weight histograms, numba/llvmlite codegen, fp8, SMAC searcher glue, log parsing. |
+| `nn.py` | The 420-line compositional layer library: `Ret`, `Decay`, `Dat`, `Seq`/`Add`/`Mul`/`Dot`/`Res`, parameter-count sizing helpers, and causal convolution utilities. |
+| `nnn.py` | An earlier 142-line fork of the same ideas; no notebook imports it. Kept as part of the trail. |
+| `ray3.ipynb` | **Start here.** The most complete notebook: `Ret`, `Model`, a self-contained `train()`, and three ASHA search stages. |
+| `ray1.ipynb`, `ray2.ipynb` | The same lineage with a `Blk`/`Blks` block family (parallel retention + causal-conv branches), `get_blks`, and five successive ASHA searches. |
+| `ray3cnn-Copy5.ipynb`, `Untitled9.ipynb` | The largest retention + convolution hybrid workbenches, with `Cov`/`Covd`/`Covu` and `torch.compile(torch.jit.trace(...))` training loops. |
+| `Untitled-Copy1.ipynb` | Adjacent thread: byte-level CNN LM plus random architecture search and a generation sampler. |
+| `code.sh` | Personal helper that collects source files into lowercase byte corpora. |
+| `docs/project-status.md` | Evidence, boundaries, and the current classification of the archive. |
 
-The `decay` / `Ret` idea is the same everywhere: scale the key-value product by
-`exp(λ · position)` with a learned per-channel λ, take a (log-)cumulative sum,
-and normalise — the retention kernel from *Retentive Network: A Successor to
+The retention idea is the one from *Retentive Network: A Successor to
 Transformer for Large Language Modeling* (Sun et al., 2023), re-derived here in
 the author's own layer style rather than copied from the paper.
 
+## How to develop
+
+- **Notebooks are the unit of work.** There is no build, no test command, and
+  no package to install. Open a notebook and run it against your own corpus.
+- **Keep the library local.** The notebooks import `from nn import *`; `nn.py`
+  stays in the repository so those imports keep resolving. The canonical,
+  published copy is [`cznn`](https://github.com/ZisIsNotZis/cznn).
+- **Expect missing names in the scratch files.** Some notebooks depend on
+  helpers defined in an earlier notebook or nowhere at all (for example,
+  `ray3.ipynb` calls an undefined `size_select`). They are preserved as run,
+  not normalized into a tutorial.
+- **Do not commit generated material.** `*.map`, `ray_results/`, `log.txt`,
+  `__pycache__/`, and notebook checkpoints are ignored. Corpora and weights do
+  not belong in the repository.
+- **Dependencies are listed in Quick start.** If a notebook needs more
+  (`transformers`, `numba`, `llvmlite`, `greenlet`, `lark`, `smac`, `scipy`),
+  install it explicitly; there is no lockfile to hide the difference.
+
+## How to contribute
+
+This is a dormant research archive, but corrections and reproducibility fixes
+are welcome. Open an issue with the notebook and cell you are looking at, or a
+focused pull request that keeps the archive faithful to what was run. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the short version.
+
+## Roadmap
+
+### Implemented
+
+- Retention (`Decay`) in linear and log-space forms, with causal shifting.
+- `Ret` blocks and compositional model building in `nn.py`.
+- Byte-level `Dat` loader with a vocabulary sidecar.
+- Self-contained training loops with bf16 autocast, Adam, and OneCycleLR.
+- Ray Tune ASHA searches over model width, heads, kernels, and decay ranges.
+- Retention + causal-convolution and U-Net-style hybrid experiments.
+- Archive documentation and an AGPL-3.0-only license.
+
+### Planned (not scheduled)
+
+Nothing is actively being built. If the archive is revived, the highest-value
+next steps are:
+
+- A minimal runnable example with a small public byte corpus.
+- A pinned environment recipe for the core `ray3` path.
+- A write-up comparing retention, causal convolution, and the hybrids, with
+  honest curves from a reproducible search.
+- Saved best configurations and loss curves, so claims can be checked.
+
+## Future vision
+
+A small, trustworthy reference for retention-based byte-level language models:
+one command to train a readable model on a public corpus, reproducible configs,
+and honest curves sitting next to the full research trail. The layer library
+already exists; the missing piece is the write-up and the reproducible path
+around it.
+
 ## Relationship to `cznn`
 
-`nn.py` in this directory **is** the library that is now published as
-[`cznn`](https://github.com/ZisIsNotZis/cznn) (`cznn/__init__.py`).
-
-- **Canonical is `cznn`** — the published package. Its `cznn/__init__.py`
-  is this file verbatim plus a 6-line provenance docstring; a `diff` shows only
-  that header.
-- The local `nn.py` is **kept here on purpose** so the notebooks'
-  `from nn import *` imports still resolve. It is not a second maintained fork,
-  and it is not deleted.
-- The notebooks' imports are deliberately **not** rewritten to `import cznn`,
-  so the archive stays faithful to what was actually run in 2023/2024. If you
-  want the published library, install/use `cznn` instead.
-
-## Status
-
-Research / archive. Unmaintained, incomplete, not production code. Nothing here
-was ever written up, released, or benchmarked against a baseline. Kept as a
-record of the author's retention experiments and as the provenance of `cznn`.
+`nn.py` in this directory **is** the library now published as
+[`cznn`](https://github.com/ZisIsNotZis/cznn) (`cznn/__init__.py`). The published
+package is canonical; this file is kept so the notebooks' unchanged imports
+still work. A `diff` shows only the provenance header added by `cznn`.
 
 ## License
 
-None. There is no `LICENSE` file; treat this as unpublished personal research
-and assume all rights reserved by the author. Do not redistribute. Some cells
-implement ideas from published papers (RetNet); those ideas remain the work of
-their original authors.
-
-## Provenance note
-
-Copied read-only from the private archive `~/my/retnet`; nothing in the source
-was modified. Absolute author filesystem paths were replaced with relative
-placeholders (`py.txt`, `ray_results/`, `models--THUDM--chatglm3-6b`) and no
-secrets were found in the scanned tree.
+[AGPL-3.0-only](LICENSE). The retention idea itself comes from the RetNet paper
+cited above; the implementation and the experiment record are the author's.
