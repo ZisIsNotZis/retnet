@@ -53,7 +53,7 @@ baseline. The notebooks date from late 2023 (Ray run directories are named
 - **No data**: the `py.txt` byte corpora the models consume are not in the
   archive; `Dat` will only run against a file the user supplies. Absolute author
   paths were replaced with the relative placeholders `py.txt` / `ray_results/`.
-- **No results**: none of the 29 notebooks has saved cell outputs; the only
+- **No results**: none of the 28 notebooks has saved cell outputs; the only
   figure is one markdown image attachment in `Untitled4.ipynb`. No loss curves,
   best-config tables, or write-up survive. Claims about which architecture
   "won" cannot be verified from this archive.
@@ -64,9 +64,8 @@ baseline. The notebooks date from late 2023 (Ray run directories are named
 - **Scratch-grade**: near-duplicate `Untitled*` / `Untitled-CopyN` files mixed
   with unrelated dead ends (greenlet/fiber scheduling, numba/llvmlite, fp8,
   asyncio, numpy sort/unique utilities).
-- **License**: none. Treat as unpublished personal research, all rights
-  reserved. The retention idea itself is from *Retentive Network* (Sun et al.,
-  2023), re-derived rather than copied.
+- **License**: AGPL-3.0-only (see `LICENSE`). The retention idea itself is
+  from *Retentive Network* (Sun et al., 2023), re-derived rather than copied.
 - Canonical copy of the library is the published
   [`cznn`](https://github.com/ZisIsNotZis/cznn); the local `nn.py` is retained
   only so the notebooks' unchanged `from nn import *` imports keep working.
