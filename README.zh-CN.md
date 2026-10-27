@@ -33,7 +33,7 @@ notebook。
 ```bash
 git clone https://github.com/ZisIsNotZis/retnet.git
 cd retnet
-pip install torch numpy matplotlib pandas tqdm "ray[tune]" hyperopt
+pip install torch numpy "ray[tune]" jupyterlab
 jupyter lab ray3.ipynb
 ```
 
@@ -128,9 +128,10 @@ Language Modeling*（Sun et al., 2023），这里是按作者自己的层风格�
   它们按原样保留，没有被整理成教程。
 - **不要提交生成物。** `*.map`、`ray_results/`、`log.txt`、`__pycache__/`
   和 notebook checkpoint 都已被忽略。语料和权重不该进仓库。
-- **依赖写在快速开始里。** 如果某个 notebook 还要别的（`transformers`、
-  `numba`、`llvmlite`、`greenlet`、`lark`、`smac`、`scipy`），请自行安装；
-  这里没有 lockfile 替你固定版本。
+- **依赖写在快速开始里。** 那份清单只覆盖 `ray3` 这条路径。其他 notebook
+  还会用到 `matplotlib`、`pandas`、`tqdm`、`hyperopt`、`transformers`、
+  `numba`、`llvmlite`、`greenlet`、`lark`、`smac`、`scipy`；打开哪个就装
+  哪个。这里没有 requirements 文件，也没有 lockfile 替你固定版本。
 
 ## 如何贡献
 

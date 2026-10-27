@@ -36,7 +36,7 @@ point is the reference notebook.
 ```bash
 git clone https://github.com/ZisIsNotZis/retnet.git
 cd retnet
-pip install torch numpy matplotlib pandas tqdm "ray[tune]" hyperopt
+pip install torch numpy "ray[tune]" jupyterlab
 jupyter lab ray3.ipynb
 ```
 
@@ -135,9 +135,11 @@ the author's own layer style rather than copied from the paper.
 - **Do not commit generated material.** `*.map`, `ray_results/`, `log.txt`,
   `__pycache__/`, and notebook checkpoints are ignored. Corpora and weights do
   not belong in the repository.
-- **Dependencies are listed in Quick start.** If a notebook needs more
-  (`transformers`, `numba`, `llvmlite`, `greenlet`, `lark`, `smac`, `scipy`),
-  install it explicitly; there is no lockfile to hide the difference.
+- **Dependencies are listed in Quick start.** That list covers the `ray3`
+  path only. Other notebooks also reach for `matplotlib`, `pandas`, `tqdm`,
+  `hyperopt`, `transformers`, `numba`, `llvmlite`, `greenlet`, `lark`,
+  `smac`, and `scipy`; install what the notebook you open imports. There is no
+  requirements file or lockfile to hide the difference.
 
 ## How to contribute
 
